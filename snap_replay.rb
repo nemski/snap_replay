@@ -4,16 +4,17 @@ require_relative 'snap_parser'
 # SNMP datatypes
 #
 ASN1DataTypes = {
-	:"INTEGER-32"		=>	"\x02",
-	:"OCTET-STRING"     =>	"\x04",
-	:NULL				=>	"\x05",
-	:"OBJ-ID"			=>	"\x06",
-	:SEQUENCE           =>	"\x30",
-	:"IP-ADDRESS"		=>	"\x40",
-	:"COUNTER-32"		=>	"\x41",
-	:"GAUGE-32"			=>	"\x42",
-	:"TIME-TICKS"		=>	"\x43",
-	:"COUNTER-64"		=>	"\x46",
+       :"INTEGER-32"           =>      2,
+       :"OCTET-STRING"     =>  4,
+       :NULL                           =>      5,
+       :"OBJ-ID"                       =>      6,
+       :SEQUENCE           =>  48,
+       :"IP-ADDRESS"           =>      64,
+       :"COUNTER-32"           =>      65,
+       :"GAUGE-32"                     =>      66,
+       :"TIME-TICKS"           =>      67,
+       :"COUNTER-64"           =>      70,
+
 }
 
 if ! ARGV[0]
