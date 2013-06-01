@@ -29,7 +29,7 @@ class SNMPObject
 	end
 end
 
-class SNMPTable
+class SNMPAgent
 	def initialize()
 		@hash_of_oids = {}
 		@array_of_oids = []
