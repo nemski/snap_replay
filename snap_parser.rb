@@ -15,22 +15,22 @@ class SNMPObject
 		@tag = tag
 		@value = value.to_s
 
-		@response = OpenSSL::ASN1::ASN1Data.new(@value, @tag, :UNIVERSAL)
+		@response = OpenSSL::ASN1::ASN1Data.new(@value, @tag, :CONTEXT_SPECIFIC)
 	end
 
 	def tag=(value)
 		@tag = value
-		@response = OpenSSL::ASN1::ASN1Data.new(@value, @tag, :UNIVERSAL)
+		@response = OpenSSL::ASN1::ASN1Data.new(@value, @tag, :CONTEXT_SPECIFIC)
 	end
 
 	def value=(value)
 		@value = value.to_s
-		@response = OpenSSL::ASN1::ASN1Data.new(@value, @tag, :UNIVERSAL)
+		@response = OpenSSL::ASN1::ASN1Data.new(@value, @tag, :CONTEXT_SPECIFIC)
 	end
 end
 
 class SNMPAgent
-	def initialize()
+	def initialize
 		@hash_of_oids = {}
 		@array_of_oids = []
 	end
@@ -71,11 +71,10 @@ class SNMPAgent
 			end
 		end
 		
-		self.get(@return).response.to_der
+		self.get(@return)
 	end
 
 	def get(oid)
-		
-		@hash_of_oids[oid].response.to_der
+		self[oid].response.to_der
 	end
 end
