@@ -49,7 +49,7 @@ class SNMPAgent
 		@hash_of_oids[oid]
 	end
 
-	def getNext(oid)
+	def get_next(oid)
 		if @array_of_oids.index(oid).nil?
                         @tmp_array = @array_of_oids.clone
                         @tmp_array << oid
@@ -62,10 +62,16 @@ class SNMPAgent
                         @return = @array_of_oids[@tmp_array.index(oid)]
 		else
 			@next_index = @array_of_oids.index(oid)++
-			@return = @hash_of_oids[@array_of_oids[@next_index]]
+			if @hash_of_oids[@array_of_oids[@next_index]].nil?
+				# Throw except "End of MIB"
+				puts "End of MIB\n"
+				exit
+			else
+				@return = @hash_of_oids[@array_of_oids[@next_index]]
+			end
 		end
 		
-		@return.response.to_der
+		self.get(@return).response.to_der
 	end
 
 	def get(oid)
