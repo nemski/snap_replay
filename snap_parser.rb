@@ -71,7 +71,7 @@ class SNMPAgent
 			end
 		end
 		
-		self.get(@return)
+		@return, self.get(@return)
 	end
 
 	def get(oid)

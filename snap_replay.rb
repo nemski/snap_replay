@@ -68,6 +68,7 @@ def parse_reply(pkt)
         :msgAuthEngineBoots    	=> msgAuthoritiveEngineBoots,
         :msgAuthEngineTime      => msgAuthoritiveEngineTime,
 		:contextEngineID        => contextEngineID,
+		:msgVersion 			=> msgVersion,
 		:pduType				=> pduType,
 		:community				=> community,
 		:requestId				=> requestId,
@@ -78,6 +79,19 @@ def parse_reply(pkt)
     }
 	
   snmpReturn
+end
+
+def gen_snmpMsg(snmpPacket)
+	msgFlags, msgAuthEngineID, msgAuthEngineBoots, msgAuthEngineTime, userName, msgAuthParam, msgPrivParam, scopedPDU)
+
+	if snmpPacket[:msgVersion] == 1
+		pdu = [ OpenSSL::ASN1::Integer(snmpPacket[:requestId]), OpenSSL::ASN1::Integer(0), OpenSSL::ASN1::Integer(0), 
+			OpenSSL::ASN1::Sequence( [	OpenSSL::ASN1::Sequence( [	OpenSSL::ASN1::ObjectId(snmpPacket[:oid]), snmpPacket[:val]		] )		] )
+    	msg = [ OpenSSL::ASN1::Integer(snmpPacket[:msgVersion]), OpenSSL::ASN1::OctetString(snmpPacket[:community]), pdu ]
+       
+    wholeMsg = OpenSSL::ASN1::Sequence(msg).to_der
+
+    wholeMsg
 end
 
 file = "~/test.snap"
@@ -98,18 +112,30 @@ end
 
 udp_socket = UDPSocket.new
 udp_socket.bind("0.0.0.0", 1161)
-ret, sender = udp_socket.recvfrom(65535)
 
-snmpReturn = parse_reply(ret)
+while 1
+	ret, sender = udp_socket.recvfrom(65535)
 
-case snmpReturn[:pduType]
-when 0
-	reply = agent.get(snmpReturn[:oid])
-when 1
-	reply = agent.get_next(snmpReturn[:oid])
-else
-	puts "Invalid request received"
-	exit
+	snmpReturn = parse_reply(ret)
+
+	case snmpReturn[:pduType]
+	when 0
+		reply = agent.get(snmpReturn[:oid])
+		oid = snmpReturn[:oid]
+	when 1
+		oid, reply = agent.get_next(snmpReturn[:oid])
+	else
+		puts "Invalid request received"
+		exit
+	end
+
+	puts reply
+
+	snmpResponse = snmpReturn.clone
+	snmpResponse[:val] = reply
+	snmpResponse[:oid] = oid
+
+	replyPkt = gen_snmpMsg(snmpResponse)
+
+	udp_socket.send(data, 0, ret, 161)
 end
-
-puts reply
