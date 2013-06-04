@@ -1,5 +1,4 @@
 require 'socket'
-
 require_relative 'snap_parser'
 
 #
@@ -40,7 +39,7 @@ def parse_reply(pkt)
 	  pdu = msgData.value[2]
 
 	elsif msgVersion == 1
-		community = asn1.value[1]
+		community = asn1.value[1].value
 		pdu = asn1.value[2]
 		pduType = pdu.tag
 
@@ -50,23 +49,20 @@ def parse_reply(pkt)
 	return
 	end
 
-	requestId = pdu.value[0]
-	errorStatus = pdu.value[1]
-	errorIndex = pdu.value[2]
+	requestId = pdu.value[0].value
+	errorStatus = pdu.value[1].value
+	errorIndex = pdu.value[2].value
 	varBind = pdu.value[3]
 
 	if varBind
 	    var = varBind.value[0]
 	    if var
-	       oid = var.value[0]
+	       oid = var.value[0].value
            val = var.value[1]
     	end
 	end
 
 	snmpResult = {  
-		:msgAuthEngineID        => msgAuthoritiveEngineID,
-        :msgAuthEngineBoots    	=> msgAuthoritiveEngineBoots,
-        :msgAuthEngineTime      => msgAuthoritiveEngineTime,
 		:contextEngineID        => contextEngineID,
 		:msgVersion 			=> msgVersion,
 		:pduType				=> pduType,
@@ -78,23 +74,22 @@ def parse_reply(pkt)
 		:val                    => val,
     }
 	
-  snmpReturn
+  snmpResult
 end
 
 def gen_snmpMsg(snmpPacket)
-	msgFlags, msgAuthEngineID, msgAuthEngineBoots, msgAuthEngineTime, userName, msgAuthParam, msgPrivParam, scopedPDU)
 
-	if snmpPacket[:msgVersion] == 1
-		pdu = [ OpenSSL::ASN1::Integer(snmpPacket[:requestId]), OpenSSL::ASN1::Integer(0), OpenSSL::ASN1::Integer(0), 
-			OpenSSL::ASN1::Sequence( [	OpenSSL::ASN1::Sequence( [	OpenSSL::ASN1::ObjectId(snmpPacket[:oid]), snmpPacket[:val]		] )		] )
-    	msg = [ OpenSSL::ASN1::Integer(snmpPacket[:msgVersion]), OpenSSL::ASN1::OctetString(snmpPacket[:community]), pdu ]
+	pdu = [ OpenSSL::ASN1::Integer(snmpPacket[:requestId]), OpenSSL::ASN1::Integer(0), OpenSSL::ASN1::Integer(0), OpenSSL::ASN1::Sequence( [	OpenSSL::ASN1::Sequence( [ OpenSSL::ASN1::ObjectId(snmpPacket[:oid]), OpenSSL::ASN1::ASN1Data.new(snmpPacket[:val], snmpPacket[:tag], :CONTEXT_SPECIFIC)	] )	] ) ]
+
+	scopedPdu = OpenSSL::ASN1::ASN1Data.new(pdu, 2, :CONTEXT_SPECIFIC)
+	msg = [ OpenSSL::ASN1::Integer(snmpPacket[:msgVersion]), OpenSSL::ASN1::OctetString(snmpPacket[:community]), scopedPdu ]
        
     wholeMsg = OpenSSL::ASN1::Sequence(msg).to_der
 
     wholeMsg
 end
 
-file = "~/test.snap"
+file = File.new(ARGV[0])
 agent = SNMPAgent.new
 
 while (line = file.gets)
@@ -120,22 +115,24 @@ while 1
 
 	case snmpReturn[:pduType]
 	when 0
-		reply = agent.get(snmpReturn[:oid])
-		oid = snmpReturn[:oid]
+		oid, tag, reply = agent.get(snmpReturn[:oid])
 	when 1
-		oid, reply = agent.get_next(snmpReturn[:oid])
+		oid, tag, reply = agent.get_next(snmpReturn[:oid])
 	else
 		puts "Invalid request received"
 		exit
 	end
 
-	puts reply
-
 	snmpResponse = snmpReturn.clone
+	snmpResponse[:tag] = tag
 	snmpResponse[:val] = reply
 	snmpResponse[:oid] = oid
 
+	snmpResponse.each_pair {|key,value| puts "#{key} = #{value} (#{value.class}"}
+
 	replyPkt = gen_snmpMsg(snmpResponse)
 
-	udp_socket.send(data, 0, ret, 161)
+	puts "Sending to #{sender[2]}:#{sender[1]}"
+
+	udp_socket.send(replyPkt, 0, sender[2], sender[1])
 end

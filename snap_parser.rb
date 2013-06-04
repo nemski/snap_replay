@@ -36,6 +36,8 @@ class SNMPAgent
 	end
 
 	def add(oid, tag, value)
+		@oid = oid
+		@oid.sub!(/^\.*/, "")
 		@hash_of_oids[oid] = SNMPObject.new(tag, value)
 		@array_of_oids << oid
 		@array_of_oids.sort!
@@ -54,27 +56,27 @@ class SNMPAgent
                         @tmp_array = @array_of_oids.clone
                         @tmp_array << oid
                         @tmp_array.sort!
-			if @tmp_array.index(oid) == @tmp_array.rindex
+			if @tmp_array.index(oid) == (@tmp_array.size - 1)
 				# Throw except "End of MIB"
 				puts "End of MIB\n"
+				puts @tmp_array
 				exit
 			end
                         @return = @array_of_oids[@tmp_array.index(oid)]
 		else
-			@next_index = @array_of_oids.index(oid)++
-			if @hash_of_oids[@array_of_oids[@next_index]].nil?
+			@next_index = (@array_of_oids.index(oid) + 1)
+			@return = @array_of_oids[@next_index]
+			if @hash_of_oids[@return].nil?
 				# Throw except "End of MIB"
 				puts "End of MIB\n"
 				exit
-			else
-				@return = @hash_of_oids[@array_of_oids[@next_index]]
 			end
 		end
 		
-		@return, self.get(@return)
+		self.get(@return)
 	end
 
 	def get(oid)
-		self[oid].response.to_der
+		[oid, @hash_of_oids[oid].tag, @hash_of_oids[oid].response.to_der]
 	end
 end
