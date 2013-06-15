@@ -15,7 +15,6 @@ ASN1DataTypes = {
    :"GAUGE-32"                     	=>      66,
    :"TIME-TICKS"           			=>      67,
    :"COUNTER-64"           			=>      70,
-
 }
 
 def parse_reply(pkt)
